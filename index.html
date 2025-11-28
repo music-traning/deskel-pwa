@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Deskel Pro (v17 Android Fix)</title>
+  <title>Deskel Pro (v18 Help)</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
@@ -152,6 +152,18 @@
       background-color: #eee;
     }
 
+    /* サポートリンク */
+    #btn-support {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 11px;
+      text-decoration: underline;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    /* ユーザー・言語ステータスエリア */
     #user-status {
       position: absolute;
       top: 15px;
@@ -184,6 +196,22 @@
       justify-content: center;
     }
 
+    /* ヘルプボタン（丸いデザイン） */
+    #btn-help {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.8);
+      background: rgba(0, 0, 0, 0.5);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 14px;
+    }
+
     #user-icon {
       width: 36px;
       height: 36px;
@@ -196,7 +224,8 @@
 
     /* モーダル共通 */
     #modal,
-    #save-modal {
+    #save-modal,
+    #help-modal {
       display: none;
       position: fixed;
       top: 0;
@@ -217,6 +246,32 @@
       border-radius: 15px;
       border: 1px solid #444;
       max-width: 80%;
+      max-height: 80vh;
+      /* 高さ制限 */
+      overflow-y: auto;
+      /* スクロール可能に */
+    }
+
+    /* ヘルプテキストのスタイル */
+    .help-content {
+      text-align: left;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #ddd;
+      margin-bottom: 20px;
+    }
+
+    .help-content h4 {
+      margin-top: 15px;
+      margin-bottom: 5px;
+      color: #00d2ff;
+      border-bottom: 1px solid #444;
+      padding-bottom: 2px;
+    }
+
+    .help-content ul {
+      padding-left: 20px;
+      margin: 5px 0;
     }
 
     #preview-img {
@@ -273,6 +328,7 @@
 <body>
 
   <div id="user-status">
+    <button id="btn-help" onclick="openHelp()">?</button>
     <button id="btn-lang" class="status-btn" onclick="toggleRegion()">🇯🇵 Japan</button>
     <button id="btn-login" class="status-btn" onclick="signIn()">G Login</button>
     <img id="user-icon" src="" alt="user">
@@ -301,6 +357,8 @@
 
     <div class="buttons" id="btn-container"></div>
     <button id="shutter-btn"></button>
+
+    <button id="btn-support" onclick="sendSupportEmail()">✉️ Support / Refund</button>
   </div>
 
   <div id="modal">
@@ -336,6 +394,15 @@
     </div>
   </div>
 
+  <div id="help-modal">
+    <div class="modal-box">
+      <h3 id="text-help-title">使い方</h3>
+      <div id="help-content-area" class="help-content">
+      </div>
+      <button id="btn-close-help" class="btn-cancel" onclick="closeHelp()">閉じる</button>
+    </div>
+  </div>
+
   <canvas id="photo-canvas"></canvas>
 
   <script type="module">
@@ -343,7 +410,9 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // === 言語・地域データ定義 (保存ボタンのラベル追加) ===
+    const SUPPORT_MAIL_ADDRESS = "your-email@example.com";
+
+    // === 言語・地域データ定義 (ヘルプテキスト追加) ===
     const LANGUAGE_STRINGS = {
       'ja': {
         'BTN_LABEL': '🇯🇵 Japan',
@@ -364,7 +433,29 @@
         'SAVE_TITLE': '撮影しました',
         'SAVE_DESC': '保存方法を選んでください',
         'SAVE_BTN_ANDROID': '⬇️ 保存 (Android)',
-        'SAVE_BTN_IOS': '📤 共有 (iOS)'
+        'SAVE_BTN_IOS': '📤 共有 (iOS)',
+        'SUPPORT_BTN': '✉️ お問い合わせ / 返金申請',
+        'SUPPORT_SUB': 'デスケルPro お問い合わせ',
+        'SUPPORT_BODY': '※以下のIDは消さずに送信してください。\n----------------\nユーザーID: ',
+
+        // ヘルプ用テキスト (HTML形式)
+        'HELP_TITLE': '使い方ガイド',
+        'HELP_CONTENT': `
+          <h4>📱 アプリのインストール</h4>
+          <p><strong>iPhone:</strong> Safariの「共有」ボタン→「ホーム画面に追加」<br>
+          <strong>Android:</strong> Chromeメニュー→「アプリをインストール」</p>
+          
+          <h4>🖌 基本操作</h4>
+          <ul>
+            <li><strong>左上ボタン:</strong> 地域を切り替えます (🇯🇵/🇺🇸/🇪🇺)</li>
+            <li><strong>下のボタン:</strong> 描くサイズを選びます</li>
+            <li><strong>Import:</strong> 写真を読み込んでガイドを表示します</li>
+          </ul>
+          
+          <h4>💾 保存について</h4>
+          <p><strong>Android:</strong> 「⬇️ 保存」でダウンロードフォルダに入ります。<br>
+          <strong>iPhone:</strong> 「📤 共有」から「画像を保存」を選んでください。</p>
+        `
       },
       'us': {
         'BTN_LABEL': '🇺🇸 USA',
@@ -385,7 +476,29 @@
         'SAVE_TITLE': 'Captured',
         'SAVE_DESC': 'Select save method',
         'SAVE_BTN_ANDROID': '⬇️ Download',
-        'SAVE_BTN_IOS': '📤 Share (iOS)'
+        'SAVE_BTN_IOS': '📤 Share (iOS)',
+        'SUPPORT_BTN': '✉️ Support / Refund',
+        'SUPPORT_SUB': 'Deskel Pro Support Request',
+        'SUPPORT_BODY': 'Please do not delete the User ID below.\n----------------\nUser ID: ',
+
+        // Help Text (English)
+        'HELP_TITLE': 'User Guide',
+        'HELP_CONTENT': `
+          <h4>📱 How to Install</h4>
+          <p><strong>iOS:</strong> Tap Safari "Share" → "Add to Home Screen"<br>
+          <strong>Android:</strong> Tap Chrome Menu → "Install App"</p>
+          
+          <h4>🖌 Basic Usage</h4>
+          <ul>
+            <li><strong>Top Left:</strong> Switch Region (🇯🇵/🇺🇸/🇪🇺)</li>
+            <li><strong>Bottom:</strong> Select Canvas Ratio</li>
+            <li><strong>Import:</strong> Load photo from library</li>
+          </ul>
+          
+          <h4>💾 Saving Images</h4>
+          <p><strong>Android:</strong> Tap "⬇️ Download" (Saved to Downloads).<br>
+          <strong>iOS:</strong> Tap "📤 Share" then "Save Image".</p>
+        `
       },
       'eu': {
         'BTN_LABEL': '🇪🇺 Europe',
@@ -406,7 +519,28 @@
         'SAVE_TITLE': 'Captured',
         'SAVE_DESC': 'Select save method',
         'SAVE_BTN_ANDROID': '⬇️ Download',
-        'SAVE_BTN_IOS': '📤 Share (iOS)'
+        'SAVE_BTN_IOS': '📤 Share (iOS)',
+        'SUPPORT_BTN': '✉️ Support / Refund',
+        'SUPPORT_SUB': 'Deskel Pro Support Request',
+        'SUPPORT_BODY': 'Please do not delete the User ID below.\n----------------\nUser ID: ',
+
+        'HELP_TITLE': 'User Guide',
+        'HELP_CONTENT': `
+          <h4>📱 How to Install</h4>
+          <p><strong>iOS:</strong> Tap Safari "Share" → "Add to Home Screen"<br>
+          <strong>Android:</strong> Tap Chrome Menu → "Install App"</p>
+          
+          <h4>🖌 Basic Usage</h4>
+          <ul>
+            <li><strong>Top Left:</strong> Switch Region (🇯🇵/🇺🇸/🇪🇺)</li>
+            <li><strong>Bottom:</strong> Select Canvas Ratio</li>
+            <li><strong>Import:</strong> Load photo from library</li>
+          </ul>
+          
+          <h4>💾 Saving Images</h4>
+          <p><strong>Android:</strong> Tap "⬇️ Download" (Saved to Downloads).<br>
+          <strong>iOS:</strong> Tap "📤 Share" then "Save Image".</p>
+        `
       }
     };
 
@@ -471,7 +605,15 @@
       } catch (e) { alert("Error: " + e.message); }
     };
 
-    // === 比率データ（無料開放中） ===
+    window.sendSupportEmail = () => {
+      const dict = LANGUAGE_STRINGS[currentRegion];
+      const subject = dict['SUPPORT_SUB'];
+      const userId = currentUser ? currentUser.uid : "unknown (Not Logged In)";
+      const body = dict['SUPPORT_BODY'] + userId + "\n----------------\n\n";
+
+      location.href = `mailto:${SUPPORT_MAIL_ADDRESS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    };
+
     const RATIO_DATA = [
       { id: 'standard', label_key: 'SIZE_STANDARD', ratio: 297 / 210, isPremium: false, regions: ['ja'] },
       { id: 'mokutan', label_key: 'SIZE_MOKUTAN', ratio: 650 / 500, isPremium: false, regions: ['ja'] },
@@ -503,6 +645,21 @@
     const shutterBtn = document.getElementById('shutter-btn');
     const btnImport = document.getElementById('btn-import');
     const fileInput = document.getElementById('file-input');
+
+    // ヘルプモーダル要素
+    const helpModal = document.getElementById('help-modal');
+    const helpContent = document.getElementById('help-content-area');
+
+    // ヘルプ開閉関数
+    window.openHelp = () => {
+      // 現在の言語のヘルプテキストを注入
+      const dict = LANGUAGE_STRINGS[currentRegion];
+      document.getElementById('text-help-title').innerText = dict['HELP_TITLE'];
+      helpContent.innerHTML = dict['HELP_CONTENT'];
+      document.getElementById('btn-close-help').innerText = dict['CLOSE'];
+      helpModal.style.display = 'flex';
+    };
+    window.closeHelp = () => { helpModal.style.display = 'none'; };
 
     for (let i = 0; i < 16; i++) {
       const cell = document.createElement('div');
@@ -580,11 +737,11 @@
       document.getElementById('text-save-title').innerText = dict['SAVE_TITLE'];
       document.getElementById('text-save-desc').innerText = dict['SAVE_DESC'];
 
-      // 保存ボタンのラベル更新
       document.getElementById('btn-download-direct').innerText = dict['SAVE_BTN_ANDROID'];
       document.getElementById('btn-save-share').innerText = dict['SAVE_BTN_IOS'];
 
       document.getElementById('btn-close-save').innerText = dict['CLOSE'];
+      document.getElementById('btn-support').innerText = dict['SUPPORT_BTN'];
     }
 
     function renderButtons() {
@@ -672,7 +829,6 @@
       const dataURL = canvas.toDataURL('image/png');
       previewImg.src = dataURL;
 
-      // === Android向け直接保存機能 ===
       btnDownload.onclick = () => {
         const a = document.createElement('a');
         a.href = dataURL;
@@ -683,7 +839,6 @@
         document.body.removeChild(a);
       };
 
-      // === iOS向け共有機能 ===
       btnSaveShare.onclick = async () => {
         try {
           const blob = await (await fetch(dataURL)).blob();
