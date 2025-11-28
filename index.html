@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Deskel Pro (v20 Warning)</title>
+  <title>Deskel Pro</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
@@ -414,7 +414,7 @@
 
     const SUPPORT_MAIL_ADDRESS = "your-email@example.com";
 
-    // === 言語・地域データ定義 (★PREMIUM_WARNING 追加★) ===
+    // === 言語・地域データ定義 ===
     const LANGUAGE_STRINGS = {
       'ja': {
         'BTN_LABEL': '🇯🇵 Japan',
@@ -437,7 +437,7 @@
         'SAVE_DESC': '保存方法を選んでください',
         'SAVE_BTN_ANDROID': '⬇️ 保存 (Android)',
         'SAVE_BTN_IOS': '📤 共有 (iOS)',
-        'SUPPORT_BTN': '✉️ お問い合わせ',
+        'SUPPORT_BTN': '✉️ お問い合わせ / 返金申請',
         'SUPPORT_SUB': 'デスケルPro お問い合わせ',
         'SUPPORT_BODY': '※以下のIDは消さずに送信してください。\n----------------\nユーザーID: ',
 
@@ -542,9 +542,8 @@
             <li><strong>Import:</strong> Load photo from library</li>
           </ul>
           
-          <h4>💾 Saving Images</h4>
-          <p><strong>Android:</strong> Tap "⬇️ Download" (Saved to Downloads).<br>
-          <strong>iOS:</strong> Tap "📤 Share" then "Save Image".</p>
+          <h4>⚠️ Important</h4>
+          <p class="help-warning">All sales are final for the Pro Plan.<br>Please ensure the app works on your device before purchasing.</p>
         `
       }
     };
@@ -734,10 +733,7 @@
       document.getElementById('btn-import').innerText = dict['IMPORT'];
       document.getElementById('text-premium-title').innerText = dict['PREMIUM_TITLE'];
       document.getElementById('text-premium-desc').innerHTML = dict['PREMIUM_DESC'];
-
-      // ★注意書きの更新★
       document.getElementById('text-premium-warning').innerHTML = dict['PREMIUM_WARNING'];
-
       document.getElementById('btn-purchase').innerText = dict['PURCHASE'];
       document.getElementById('btn-close-modal').innerText = dict['CLOSE'];
 
