@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Deskel Pro (Global + Support)</title>
+  <title>Deskel Pro (v17 Android Fix)</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
@@ -130,7 +130,6 @@
       border-color: white;
     }
 
-    /* ロック状態 */
     button.size-btn.locked {
       color: #aaa;
       background: rgba(30, 30, 30, 0.8);
@@ -153,18 +152,6 @@
       background-color: #eee;
     }
 
-    /* サポートリンク */
-    #btn-support {
-      background: none;
-      border: none;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 11px;
-      text-decoration: underline;
-      cursor: pointer;
-      margin-top: 5px;
-    }
-
-    /* ユーザー・言語ステータスエリア */
     #user-status {
       position: absolute;
       top: 15px;
@@ -248,6 +235,10 @@
       border-radius: 20px;
       font-weight: bold;
       display: inline-block;
+      margin: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      border: none;
     }
 
     .btn-purchase-demo {
@@ -310,8 +301,6 @@
 
     <div class="buttons" id="btn-container"></div>
     <button id="shutter-btn"></button>
-
-    <button id="btn-support" onclick="sendSupportEmail()">✉️ Support / Refund</button>
   </div>
 
   <div id="modal">
@@ -333,9 +322,17 @@
     <div class="modal-box">
       <h3 id="text-save-title">撮影しました</h3>
       <img id="preview-img" src="">
-      <p id="text-save-desc" style="font-size:12px; color:#aaa; margin-bottom:15px;">保存ボタンを押すと共有メニューが開きます</p>
-      <button id="btn-save-share" class="btn-download">画像を保存</button>
-      <button id="btn-close-save" class="btn-cancel" onclick="closeSaveModal()">閉じる</button>
+      <p id="text-save-desc" style="font-size:12px; color:#aaa; margin-bottom:15px;">保存方法を選んでください</p>
+
+      <div style="display:flex; justify-content:center; flex-wrap:wrap;">
+        <button id="btn-download-direct" class="btn-download" style="background:#00d2ff; color:black;">⬇️
+          Android</button>
+        <button id="btn-save-share" class="btn-download">📤 iOS</button>
+      </div>
+
+      <div style="margin-top:15px;">
+        <button id="btn-close-save" class="btn-cancel" onclick="closeSaveModal()">閉じる</button>
+      </div>
     </div>
   </div>
 
@@ -346,13 +343,7 @@
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
     import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
 
-    // ==========================================
-    // ★あなたのメールアドレスを設定してください★
-    // ==========================================
-    const SUPPORT_MAIL_ADDRESS = "your-email@example.com";
-    // ==========================================
-
-    // === 言語・地域データ定義 ===
+    // === 言語・地域データ定義 (保存ボタンのラベル追加) ===
     const LANGUAGE_STRINGS = {
       'ja': {
         'BTN_LABEL': '🇯🇵 Japan',
@@ -371,11 +362,9 @@
         'PURCHASE': '【デモ】¥300で購入',
         'CLOSE': 'キャンセル',
         'SAVE_TITLE': '撮影しました',
-        'SAVE_DESC': '保存ボタンを押すと共有メニューが開きます',
-        'SAVE_BTN': '画像を保存',
-        'SUPPORT_BTN': '✉️ お問い合わせ / 返金申請',
-        'SUPPORT_SUB': 'デスケルPro お問い合わせ',
-        'SUPPORT_BODY': '※以下のIDは消さずに送信してください。\n----------------\nユーザーID: '
+        'SAVE_DESC': '保存方法を選んでください',
+        'SAVE_BTN_ANDROID': '⬇️ 保存 (Android)',
+        'SAVE_BTN_IOS': '📤 共有 (iOS)'
       },
       'us': {
         'BTN_LABEL': '🇺🇸 USA',
@@ -394,11 +383,9 @@
         'PURCHASE': '[Demo] Buy for $3.00',
         'CLOSE': 'Cancel',
         'SAVE_TITLE': 'Captured',
-        'SAVE_DESC': 'Tap save to open share menu',
-        'SAVE_BTN': 'Save Image',
-        'SUPPORT_BTN': '✉️ Support / Refund',
-        'SUPPORT_SUB': 'Deskel Pro Support Request',
-        'SUPPORT_BODY': 'Please do not delete the User ID below.\n----------------\nUser ID: '
+        'SAVE_DESC': 'Select save method',
+        'SAVE_BTN_ANDROID': '⬇️ Download',
+        'SAVE_BTN_IOS': '📤 Share (iOS)'
       },
       'eu': {
         'BTN_LABEL': '🇪🇺 Europe',
@@ -417,11 +404,9 @@
         'PURCHASE': '[Demo] Buy for $3.00',
         'CLOSE': 'Cancel',
         'SAVE_TITLE': 'Captured',
-        'SAVE_DESC': 'Tap save to open share menu',
-        'SAVE_BTN': 'Save Image',
-        'SUPPORT_BTN': '✉️ Support / Refund',
-        'SUPPORT_SUB': 'Deskel Pro Support Request',
-        'SUPPORT_BODY': 'Please do not delete the User ID below.\n----------------\nUser ID: '
+        'SAVE_DESC': 'Select save method',
+        'SAVE_BTN_ANDROID': '⬇️ Download',
+        'SAVE_BTN_IOS': '📤 Share (iOS)'
       }
     };
 
@@ -486,16 +471,6 @@
       } catch (e) { alert("Error: " + e.message); }
     };
 
-    // ★サポートメール送信機能★
-    window.sendSupportEmail = () => {
-      const dict = LANGUAGE_STRINGS[currentRegion];
-      const subject = dict['SUPPORT_SUB'];
-      const userId = currentUser ? currentUser.uid : "unknown (Not Logged In)";
-      const body = dict['SUPPORT_BODY'] + userId + "\n----------------\n\n";
-
-      location.href = `mailto:${SUPPORT_MAIL_ADDRESS}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    };
-
     // === 比率データ（無料開放中） ===
     const RATIO_DATA = [
       { id: 'standard', label_key: 'SIZE_STANDARD', ratio: 297 / 210, isPremium: false, regions: ['ja'] },
@@ -522,6 +497,7 @@
     const btnContainer = document.getElementById('btn-container');
     const saveModal = document.getElementById('save-modal');
     const previewImg = document.getElementById('preview-img');
+    const btnDownload = document.getElementById('btn-download-direct');
     const btnSaveShare = document.getElementById('btn-save-share');
     const canvas = document.getElementById('photo-canvas');
     const shutterBtn = document.getElementById('shutter-btn');
@@ -596,7 +572,6 @@
       document.getElementById('btn-lang').innerText = dict['BTN_LABEL'];
       document.getElementById('btn-login').innerText = dict['LOGIN'];
       document.getElementById('btn-import').innerText = dict['IMPORT'];
-
       document.getElementById('text-premium-title').innerText = dict['PREMIUM_TITLE'];
       document.getElementById('text-premium-desc').innerHTML = dict['PREMIUM_DESC'];
       document.getElementById('btn-purchase').innerText = dict['PURCHASE'];
@@ -604,11 +579,12 @@
 
       document.getElementById('text-save-title').innerText = dict['SAVE_TITLE'];
       document.getElementById('text-save-desc').innerText = dict['SAVE_DESC'];
-      document.getElementById('btn-save-share').innerText = dict['SAVE_BTN'];
-      document.getElementById('btn-close-save').innerText = dict['CLOSE'];
 
-      // サポートボタンのテキスト更新
-      document.getElementById('btn-support').innerText = dict['SUPPORT_BTN'];
+      // 保存ボタンのラベル更新
+      document.getElementById('btn-download-direct').innerText = dict['SAVE_BTN_ANDROID'];
+      document.getElementById('btn-save-share').innerText = dict['SAVE_BTN_IOS'];
+
+      document.getElementById('btn-close-save').innerText = dict['CLOSE'];
     }
 
     function renderButtons() {
@@ -619,7 +595,7 @@
         const btn = document.createElement('button');
         btn.className = 'size-btn';
         const labelText = LANGUAGE_STRINGS[currentRegion][item.label_key];
-        const isLocked = false; // 全開放中
+        const isLocked = false;
 
         btn.innerHTML = labelText;
         if (Math.abs(item.ratio - currentRatio) < 0.01) {
@@ -696,18 +672,30 @@
       const dataURL = canvas.toDataURL('image/png');
       previewImg.src = dataURL;
 
+      // === Android向け直接保存機能 ===
+      btnDownload.onclick = () => {
+        const a = document.createElement('a');
+        a.href = dataURL;
+        const timestamp = new Date().toISOString().replace(/[-:T.]/g, '').slice(0, 14);
+        a.download = `deskel_${timestamp}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      };
+
+      // === iOS向け共有機能 ===
       btnSaveShare.onclick = async () => {
         try {
           const blob = await (await fetch(dataURL)).blob();
           const file = new File([blob], "deskel_art.png", { type: "image/png" });
           if (navigator.share && navigator.canShare({ files: [file] })) {
-            await navigator.share({ files: [file], title: 'デスケル画像', text: 'デスケルで作成した画像です' });
+            await navigator.share({ files: [file], title: 'Deskel', text: 'Created with Deskel App' });
           } else {
-            const a = document.createElement('a');
-            a.href = dataURL; a.download = 'deskel_art.png'; a.click();
+            alert("このブラウザは共有機能に対応していません。「Android保存」ボタンをお試しください。");
           }
-        } catch (err) { console.error("Share failed:", err); alert("保存に失敗しました: " + err.message); }
+        } catch (err) { console.error("Share failed:", err); }
       };
+
       saveModal.style.display = 'flex';
     };
 
