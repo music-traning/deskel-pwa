@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Deskel Pro (v24 UI Fix)</title>
+  <title>Deskel Pro (v25 Safe Layout)</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
@@ -41,7 +41,7 @@
       transition: transform 0.1s ease-out;
     }
 
-    /* 枠線レイヤー（★修正：位置を上にずらす★） */
+    /* 枠線レイヤー */
     #overlay-layer {
       position: absolute;
       top: 0;
@@ -53,20 +53,22 @@
       justify-content: center;
       align-items: center;
       pointer-events: none;
-
-      /* 下に余白を持たせることで、中心点を上にずらす */
-      padding-bottom: 140px;
-      box-sizing: border-box;
+      /* ここでのpaddingは廃止し、JSでサイズ制御します */
     }
 
     #guide-frame {
-      border: 3px solid rgba(255, 255, 255, 0.7);
-      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
-      width: 80%;
+      border: 3px solid rgba(255, 255, 255, 0.8);
+      /* 枠を少しはっきり */
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+      /* 周りの暗さを少し薄く */
+      width: 0;
+      /* JSで決定 */
       height: 0;
+      /* JSで決定 */
       position: relative;
       box-sizing: border-box;
-      transition: all 0.3s;
+      transition: all 0.2s;
+      /* キビキビ動くように */
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       grid-template-rows: repeat(4, 1fr);
@@ -76,26 +78,50 @@
       border: 1px solid rgba(0, 0, 0, 0.8);
     }
 
-    /* UI周り（★修正：下に詰める★） */
+    /* === 上部メニューエリア (Top Bar) === */
+    #top-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      /* 高さ固定 */
+      z-index: 20;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      /* 右寄せ */
+      padding: 0 15px;
+      box-sizing: border-box;
+      gap: 10px;
+      pointer-events: none;
+      /* 下の動画を触れるように */
+    }
+
+    #top-bar>* {
+      pointer-events: auto;
+      /* ボタンは触れるように */
+    }
+
+    /* === 下部操作エリア (Bottom UI) === */
     .ui-container {
       position: absolute;
       bottom: 0;
       left: 0;
       width: 100%;
       z-index: 10;
-      /* グラデーションを低く */
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 20%, rgba(0, 0, 0, 0) 100%);
 
-      /* iPhoneのホームバーを考慮しつつ、下詰め */
-      padding-bottom: max(20px, env(safe-area-inset-bottom));
-      padding-top: 40px;
-      /* グラデーションの上部余白 */
+      /* iPhoneのホームバー対応 + 余白詰め */
+      padding-bottom: max(15px, env(safe-area-inset-bottom));
+      padding-top: 30px;
 
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
-      /* 要素の間隔を狭く */
+      gap: 5px;
+      /* 限界まで詰める */
       pointer-events: none;
     }
 
@@ -103,41 +129,48 @@
       pointer-events: auto;
     }
 
+    /* ズームバー */
     .zoom-control {
-      width: 85%;
+      width: 90%;
       display: flex;
       align-items: center;
       gap: 10px;
       color: white;
-      font-size: 12px;
-      margin-bottom: 5px;
+      font-size: 11px;
+      margin-bottom: 2px;
+      text-shadow: 0 1px 2px black;
     }
 
     input[type=range] {
       flex: 1;
       height: 4px;
-      /* スライダーを細く */
     }
 
+    /* メインボタン群 */
+    .main-actions {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 2px;
+    }
+
+    /* サイズボタン群 */
     .buttons {
       display: flex;
       gap: 6px;
-      /* ボタン間隔を狭く */
       flex-wrap: wrap;
       justify-content: center;
+      margin-bottom: 5px;
     }
 
     button.size-btn {
-      padding: 6px 12px;
-      /* ボタンを少し小さく */
+      padding: 5px 10px;
       font-size: 11px;
-      border-radius: 15px;
+      border-radius: 12px;
       border: 1px solid rgba(255, 255, 255, 0.3);
-      background: rgba(30, 30, 30, 0.7);
-      /* 少し透明度上げ */
+      background: rgba(40, 40, 40, 0.8);
       color: white;
       backdrop-filter: blur(4px);
-      transition: all 0.3s;
+      transition: all 0.2s;
     }
 
     button.size-btn.active {
@@ -149,18 +182,16 @@
 
     button.size-btn.locked {
       color: #aaa;
-      background: rgba(30, 30, 30, 0.8);
+      background: rgba(20, 20, 20, 0.9);
     }
 
     #shutter-btn {
-      width: 64px;
-      /* 少し小さく */
-      height: 64px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       background-color: white;
       border: 4px solid #ccc;
       cursor: pointer;
-      margin-top: 5px;
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
       transition: transform 0.1s;
     }
@@ -177,21 +208,10 @@
       font-size: 10px;
       text-decoration: underline;
       cursor: pointer;
-      margin-top: 2px;
+      margin-top: 0px;
     }
 
-    /* ユーザー・言語ステータスエリア */
-    #user-status {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      z-index: 20;
-      pointer-events: auto;
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
+    /* ステータスボタン共通 */
     .status-btn {
       background: rgba(255, 255, 255, 0.9);
       color: #333;
@@ -207,11 +227,6 @@
       gap: 5px;
     }
 
-    #btn-lang {
-      min-width: 70px;
-      justify-content: center;
-    }
-
     #btn-help {
       width: 28px;
       height: 28px;
@@ -225,6 +240,8 @@
       justify-content: center;
       align-items: center;
       font-size: 14px;
+      margin-right: auto;
+      /* ヘルプだけ左寄せ */
     }
 
     #user-icon {
@@ -345,8 +362,9 @@
 
 <body>
 
-  <div id="user-status">
+  <div id="top-bar">
     <button id="btn-help" onclick="openHelp()">?</button>
+
     <button id="btn-lang" class="status-btn" onclick="toggleRegion()">🇯🇵 Japan</button>
     <button id="btn-login" class="status-btn" onclick="signIn()">G Login</button>
     <img id="user-icon" src="" alt="user">
@@ -368,13 +386,14 @@
       <span>＋</span>
     </div>
 
-    <div style="margin-bottom: 2px; display: flex; gap: 8px; justify-content: center;">
-      <button id="btn-camera" class="size-btn" style="background: rgba(50,50,50,0.8);">📷 Camera</button>
-      <button id="btn-import" class="size-btn" style="background: rgba(50,50,50,0.8);">📁 Import</button>
+    <div class="main-actions">
+      <button id="btn-camera" class="size-btn" style="background: rgba(60,60,60,0.9);">📷 Camera</button>
+      <button id="btn-import" class="size-btn" style="background: rgba(60,60,60,0.9);">📁 Import</button>
       <input type="file" id="file-input" accept="image/*" style="display: none;">
     </div>
 
     <div class="buttons" id="btn-container"></div>
+
     <button id="shutter-btn"></button>
 
     <button id="btn-support" onclick="sendSupportEmail()">✉️ Support</button>
@@ -432,7 +451,7 @@
 
     const SUPPORT_MAIL_ADDRESS = "your-email@example.com";
 
-    // === 言語・地域データ定義 ===
+    // === 言語データ ===
     const LANGUAGE_STRINGS = {
       'ja': {
         'BTN_LABEL': '🇯🇵 Japan',
@@ -672,7 +691,7 @@
     const canvas = document.getElementById('photo-canvas');
     const shutterBtn = document.getElementById('shutter-btn');
     const btnImport = document.getElementById('btn-import');
-    const btnCamera = document.getElementById('btn-camera'); // カメラボタン取得
+    const btnCamera = document.getElementById('btn-camera');
     const fileInput = document.getElementById('file-input');
 
     const helpModal = document.getElementById('help-modal');
@@ -693,7 +712,6 @@
       frame.appendChild(cell);
     }
 
-    // カメラ起動関数
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -710,15 +728,35 @@
       } catch (e) { console.log("カメラなし"); }
     }
 
+    // ★キモとなるレイアウト計算ロジック★
     function updateShape(ratio) {
       currentRatio = ratio;
       const sw = window.innerWidth;
       const sh = window.innerHeight;
-      let w = sw * 0.85;
+
+      // 上下のUIエリアを差し引いた「安全な高さ」を計算
+      const topBarHeight = 60;
+      const bottomUIHeight = 220; // 余裕を持って
+      const safeHeight = sh - topBarHeight - bottomUIHeight;
+
+      // 横幅は画面の90%まで使う
+      let w = sw * 0.9;
       let h = w * ratio;
-      if (h > sh * 0.75) { h = sh * 0.75; w = h / ratio; }
+
+      // もし高さが「安全な高さ」を超えたら、高さを制限して横幅を縮める
+      if (h > safeHeight) {
+        h = safeHeight;
+        w = h / ratio;
+      }
+
       frame.style.width = w + 'px';
       frame.style.height = h + 'px';
+
+      // 上部マージンを動的に調整して、UIと被らない位置に配置
+      // top-barの下あたりに来るように
+      const topOffset = topBarHeight + (safeHeight - h) / 2;
+      document.getElementById('overlay-layer').style.top = topOffset + 'px';
+      document.getElementById('overlay-layer').style.height = safeHeight + 'px';
     }
 
     slider.addEventListener('input', (e) => {
