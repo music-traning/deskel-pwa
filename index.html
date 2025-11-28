@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Deskel Pro</title>
+  <title>Deskel Pro (v23 Fixed)</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
@@ -351,7 +351,8 @@
       <span>＋</span>
     </div>
 
-    <div style="margin-bottom: 5px;">
+    <div style="margin-bottom: 5px; display: flex; gap: 10px; justify-content: center;">
+      <button id="btn-camera" class="size-btn" style="background: rgba(50,50,50,0.8);">📷 Camera</button>
       <button id="btn-import" class="size-btn" style="background: rgba(50,50,50,0.8);">📁 Import</button>
       <input type="file" id="file-input" accept="image/*" style="display: none;">
     </div>
@@ -359,7 +360,7 @@
     <div class="buttons" id="btn-container"></div>
     <button id="shutter-btn"></button>
 
-    <button id="btn-support" onclick="sendSupportEmail()">✉️ Support / Refund</button>
+    <button id="btn-support" onclick="sendSupportEmail()">✉️ Support</button>
   </div>
 
   <div id="modal">
@@ -419,7 +420,8 @@
       'ja': {
         'BTN_LABEL': '🇯🇵 Japan',
         'LOGIN': 'G ログイン',
-        'IMPORT': '📁 写真を読込',
+        'IMPORT': '📁 読込',
+        'CAMERA': '📷 カメラ',
         'SIZE_STANDARD': 'A4/B4 (210×297)',
         'SIZE_MOKUTAN': '木炭紙 (500×650)',
         'SIZE_F': 'Fサイズ (F6等)',
@@ -437,7 +439,7 @@
         'SAVE_DESC': '保存方法を選んでください',
         'SAVE_BTN_ANDROID': '⬇️ 保存 (Android)',
         'SAVE_BTN_IOS': '📤 共有 (iOS)',
-        'SUPPORT_BTN': '✉️ お問い合わせ / 返金申請',
+        'SUPPORT_BTN': '✉️ お問い合わせ',
         'SUPPORT_SUB': 'デスケルPro お問い合わせ',
         'SUPPORT_BODY': '※以下のIDは消さずに送信してください。\n----------------\nユーザーID: ',
 
@@ -451,7 +453,8 @@
           <ul>
             <li><strong>左上ボタン:</strong> 地域を切り替えます (🇯🇵/🇺🇸/🇪🇺)</li>
             <li><strong>下のボタン:</strong> 描くサイズを選びます</li>
-            <li><strong>Import:</strong> 写真を読み込んでガイドを表示します</li>
+            <li><strong>Import:</strong> 写真を読み込みます</li>
+            <li><strong>Camera:</strong> 写真モードからカメラに戻ります</li>
           </ul>
           
           <h4>💾 保存について</h4>
@@ -466,6 +469,7 @@
         'BTN_LABEL': '🇺🇸 USA',
         'LOGIN': 'Sign In',
         'IMPORT': '📁 Import',
+        'CAMERA': '📷 Camera',
         'SIZE_STANDARD': 'A-Series (ISO)',
         'SIZE_MOKUTAN': 'Charcoal (JP)',
         'SIZE_F': 'Figure (JP)',
@@ -483,7 +487,7 @@
         'SAVE_DESC': 'Select save method',
         'SAVE_BTN_ANDROID': '⬇️ Download',
         'SAVE_BTN_IOS': '📤 Share (iOS)',
-        'SUPPORT_BTN': '✉️ Support / Refund',
+        'SUPPORT_BTN': '✉️ Support',
         'SUPPORT_SUB': 'Deskel Pro Support Request',
         'SUPPORT_BODY': 'Please do not delete the User ID below.\n----------------\nUser ID: ',
 
@@ -498,6 +502,7 @@
             <li><strong>Top Left:</strong> Switch Region (🇯🇵/🇺🇸/🇪🇺)</li>
             <li><strong>Bottom:</strong> Select Canvas Ratio</li>
             <li><strong>Import:</strong> Load photo from library</li>
+            <li><strong>Camera:</strong> Return to camera mode</li>
           </ul>
           
           <h4>⚠️ Important</h4>
@@ -508,6 +513,7 @@
         'BTN_LABEL': '🇪🇺 Europe',
         'LOGIN': 'Sign In',
         'IMPORT': '📁 Import',
+        'CAMERA': '📷 Camera',
         'SIZE_STANDARD': 'ISO A-Series',
         'SIZE_MOKUTAN': 'Charcoal (JP)',
         'SIZE_F': 'Figure (JP)',
@@ -525,7 +531,7 @@
         'SAVE_DESC': 'Select save method',
         'SAVE_BTN_ANDROID': '⬇️ Download',
         'SAVE_BTN_IOS': '📤 Share (iOS)',
-        'SUPPORT_BTN': '✉️ Support / Refund',
+        'SUPPORT_BTN': '✉️ Support',
         'SUPPORT_SUB': 'Deskel Pro Support Request',
         'SUPPORT_BODY': 'Please do not delete the User ID below.\n----------------\nUser ID: ',
 
@@ -540,6 +546,7 @@
             <li><strong>Top Left:</strong> Switch Region (🇯🇵/🇺🇸/🇪🇺)</li>
             <li><strong>Bottom:</strong> Select Canvas Ratio</li>
             <li><strong>Import:</strong> Load photo from library</li>
+            <li><strong>Camera:</strong> Return to camera mode</li>
           </ul>
           
           <h4>⚠️ Important</h4>
@@ -648,9 +655,9 @@
     const canvas = document.getElementById('photo-canvas');
     const shutterBtn = document.getElementById('shutter-btn');
     const btnImport = document.getElementById('btn-import');
+    const btnCamera = document.getElementById('btn-camera'); // カメラボタン取得
     const fileInput = document.getElementById('file-input');
 
-    // ヘルプモーダル要素
     const helpModal = document.getElementById('help-modal');
     const helpContent = document.getElementById('help-content-area');
 
@@ -669,6 +676,7 @@
       frame.appendChild(cell);
     }
 
+    // カメラ起動関数
     async function startCamera() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -679,6 +687,9 @@
         video.style.display = 'block';
         importedImg.style.display = 'none';
         isUsingCamera = true;
+        currentZoom = 1.0;
+        slider.value = 1.0;
+        video.style.transform = 'scale(1.0)';
       } catch (e) { console.log("カメラなし"); }
     }
 
@@ -718,6 +729,11 @@
       reader.readAsDataURL(file);
     };
 
+    // カメラボタン動作
+    btnCamera.onclick = () => {
+      startCamera();
+    };
+
     window.toggleRegion = () => {
       if (currentRegion === 'ja') currentRegion = 'us';
       else if (currentRegion === 'us') currentRegion = 'eu';
@@ -731,6 +747,8 @@
       document.getElementById('btn-lang').innerText = dict['BTN_LABEL'];
       document.getElementById('btn-login').innerText = dict['LOGIN'];
       document.getElementById('btn-import').innerText = dict['IMPORT'];
+      document.getElementById('btn-camera').innerText = dict['CAMERA'];
+
       document.getElementById('text-premium-title').innerText = dict['PREMIUM_TITLE'];
       document.getElementById('text-premium-desc').innerHTML = dict['PREMIUM_DESC'];
       document.getElementById('text-premium-warning').innerHTML = dict['PREMIUM_WARNING'];
