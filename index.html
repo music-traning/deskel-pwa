@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Deskel Pro (Global Beta)</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="theme-color" content="#000000">
+
+  <style>
+    /* === 全体設定 === */
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #000;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .video-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    #camera-video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform-origin: center center;
+      transition: transform 0.1s ease-out;
+    }
+
+    /* 枠線 */
+    #overlay-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    #guide-frame {
+      border: 3px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+      width: 80%;
+      height: 0;
+      position: relative;
+      box-sizing: border-box;
+      transition: all 0.3s;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+    }
+
+    .grid-cell {
+      border: 1px solid rgba(0, 0, 0, 0.8);
+    }
+
+    /* UI周り */
+    .ui-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      z-index: 10;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+      padding-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      pointer-events: none;
+    }
+
+    .ui-container>* {
+      pointer-events: auto;
+    }
+
+    .zoom-control {
+      width: 80%;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      font-size: 12px;
+    }
+
+    input[type=range] {
+      flex: 1;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button.size-btn {
+      padding: 6px 14px;
+      font-size: 12px;
+      border-radius: 15px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(50, 50, 50, 0.6);
+      color: white;
+      backdrop-filter: blur(4px);
+      transition: all 0.3s;
+    }
+
+    button.size-btn.active {
+      background: white;
+      color: black;
+      font-weight: bold;
+      border-color: white;
+    }
+
+    /* ロック状態（今回は使用しませんが定義だけ残します） */
+    button.size-btn.locked {
+      color: #aaa;
+      background: rgba(30, 30, 30, 0.8);
+    }
+
+    #shutter-btn {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background-color: white;
+      border: 4px solid #ccc;
+      cursor: pointer;
+      margin-top: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+      transition: transform 0.1s;
+    }
+
+    #shutter-btn:active {
+      transform: scale(0.9);
+      background-color: #eee;
+    }
+
+    /* ユーザー・言語ステータスエリア */
+    #user-status {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      z-index: 20;
+      pointer-events: auto;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .status-btn {
+      background: white;
+      color: #333;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 20px;
+      border: none;
+      font-weight: bold;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    #btn-lang {
+      background: rgba(255, 255, 255, 0.9);
+      min-width: 80px;
+      justify-content: center;
+    }
+
+    #user-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid white;
+      display: none;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+    }
+
+    /* モーダル共通 */
+    #modal,
+    #save-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      text-align: center;
+    }
+
+    .modal-box {
+      background: #222;
+      padding: 25px;
+      border-radius: 15px;
+      border: 1px solid #444;
+      max-width: 80%;
+    }
+
+    #preview-img {
+      max-width: 100%;
+      max-height: 50vh;
+      border: 2px solid white;
+      margin: 15px 0;
+      display: block;
+    }
+
+    .btn-download {
+      background: white;
+      color: black;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 20px;
+      font-weight: bold;
+      display: inline-block;
+    }
+
+    .btn-purchase-demo {
+      background: linear-gradient(90deg, #FFD700, #FFA500);
+      color: black;
+      width: 100%;
+      padding: 12px;
+      border-radius: 20px;
+      font-weight: bold;
+      border: none;
+      margin-top: 15px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-cancel {
+      background: #555;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 20px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+
+    canvas {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="user-status">
+    <button id="btn-lang" class="status-btn" onclick="toggleRegion()">🇯🇵 Japan</button>
+    <button id="btn-login" class="status-btn" onclick="signIn()">G Login</button>
+    <img id="user-icon" src="" alt="user">
+  </div>
+
+  <div class="video-container">
+    <video id="camera-video" autoplay playsinline muted></video>
+    <img id="imported-image" style="display:none; width:100%; height:100%; object-fit:contain;">
+  </div>
+
+  <div id="overlay-layer">
+    <div id="guide-frame"></div>
+  </div>
+
+  <div class="ui-container">
+    <div class="zoom-control">
+      <span>－</span>
+      <input type="range" id="zoom-slider" min="1.0" max="3.0" step="0.1" value="1.0">
+      <span>＋</span>
+    </div>
+
+    <div style="margin-bottom: 5px;">
+      <button id="btn-import" class="size-btn" style="background: rgba(50,50,50,0.8);">📁 Import</button>
+      <input type="file" id="file-input" accept="image/*" style="display: none;">
+    </div>
+
+    <div class="buttons" id="btn-container"></div>
+    <button id="shutter-btn"></button>
+  </div>
+
+  <div id="modal">
+    <div class="modal-box">
+      <h3 id="text-premium-title">💎 有料機能</h3>
+      <p id="text-premium-desc">Proプランへの登録が必要です。</p>
+
+      <button id="btn-purchase" class="btn-purchase-demo" onclick="simulatePurchase()">
+        ¥300で購入する
+      </button>
+
+      <div style="margin-top:15px;">
+        <button id="btn-close-modal" class="btn-cancel" onclick="closeModal()">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="save-modal">
+    <div class="modal-box">
+      <h3 id="text-save-title">撮影しました</h3>
+      <img id="preview-img" src="">
+      <p id="text-save-desc" style="font-size:12px; color:#aaa; margin-bottom:15px;">保存ボタンを押すと共有メニューが開きます</p>
+      <button id="btn-save-share" class="btn-download">画像を保存</button>
+      <button id="btn-close-save" class="btn-cancel" onclick="closeSaveModal()">閉じる</button>
+    </div>
+  </div>
+
+  <canvas id="photo-canvas"></canvas>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+    // === 言語・地域データ定義 (EU追加) ===
+    const LANGUAGE_STRINGS = {
+      'ja': {
+        'BTN_LABEL': '🇯🇵 Japan',
+        'LOGIN': 'G ログイン',
+        'IMPORT': '📁 写真を読込',
+        'SIZE_STANDARD': 'A4/B4 (210×297)',
+        'SIZE_MOKUTAN': '木炭紙 (500×650)',
+        'SIZE_F': 'Fサイズ (F6等)',
+        'SIZE_SQUARE': '正方形',
+        'SIZE_US_1620': 'US Photo (4:5)',
+        'SIZE_US_1824': 'US Poster (3:4)',
+        'SIZE_EU_ISO': 'ISO A-Series',
+        'SIZE_EU_FIG': 'Europe Figure',
+        'PREMIUM_TITLE': '💎 Proプラン',
+        'PREMIUM_DESC': 'このサイズを使用するには<br>有料版への登録が必要です。',
+        'PURCHASE': '【デモ】¥300で購入',
+        'CLOSE': 'キャンセル',
+        'SAVE_TITLE': '撮影しました',
+        'SAVE_DESC': '保存ボタンを押すと共有メニューが開きます',
+        'SAVE_BTN': '画像を保存'
+      },
+      'us': {
+        'BTN_LABEL': '🇺🇸 USA',
+        'LOGIN': 'Sign In',
+        'IMPORT': '📁 Import',
+        'SIZE_STANDARD': 'A-Series (ISO)',
+        'SIZE_MOKUTAN': 'Charcoal (JP)',
+        'SIZE_F': 'Figure (JP)',
+        'SIZE_SQUARE': 'Square',
+        'SIZE_US_1620': '16x20 in (4:5)',
+        'SIZE_US_1824': '18x24 in (3:4)',
+        'SIZE_EU_ISO': 'ISO A-Series',
+        'SIZE_EU_FIG': 'Europe Figure',
+        'PREMIUM_TITLE': '💎 Pro Plan',
+        'PREMIUM_DESC': 'Upgrade to Pro to use<br>this canvas size.',
+        'PURCHASE': '[Demo] Buy for $3.00',
+        'CLOSE': 'Cancel',
+        'SAVE_TITLE': 'Captured',
+        'SAVE_DESC': 'Tap save to open share menu',
+        'SAVE_BTN': 'Save Image'
+      },
+      'eu': {
+        'BTN_LABEL': '🇪🇺 Europe',
+        'LOGIN': 'Sign In',
+        'IMPORT': '📁 Import',
+        'SIZE_STANDARD': 'ISO A-Series',
+        'SIZE_MOKUTAN': 'Charcoal (JP)',
+        'SIZE_F': 'Figure (JP)',
+        'SIZE_SQUARE': 'Square',
+        'SIZE_US_1620': 'US 16x20 (4:5)',
+        'SIZE_US_1824': 'US 18x24 (3:4)',
+        'SIZE_EU_ISO': 'ISO A-Series',
+        'SIZE_EU_FIG': 'Europe Figure',
+        'PREMIUM_TITLE': '💎 Pro Plan',
+        'PREMIUM_DESC': 'Upgrade to Pro to use<br>this canvas size.',
+        'PURCHASE': '[Demo] Buy for $3.00',
+        'CLOSE': 'Cancel',
+        'SAVE_TITLE': 'Captured',
+        'SAVE_DESC': 'Tap save to open share menu',
+        'SAVE_BTN': 'Save Image'
+      }
+    };
+
+    let currentRegion = 'ja'; // 初期地域は日本
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyA_A5BqSP48YSiZU90jFn94g1ccyCnKS1g",
+      authDomain: "deskel-app.firebaseapp.com",
+      projectId: "deskel-app",
+      storageBucket: "deskel-app.firebasestorage.app",
+      messagingSenderId: "1022422619356",
+      appId: "1:1022422619356:web:c1a2008fafcf4499021019"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    let isUserPremium = false;
+    let currentUser = null;
+
+    window.signIn = () => {
+      signInWithPopup(auth, provider).catch(e => alert(e.message));
+    };
+
+    onAuthStateChanged(auth, (user) => {
+      const loginBtn = document.getElementById('btn-login');
+      const userIcon = document.getElementById('user-icon');
+
+      if (user) {
+        currentUser = user;
+        loginBtn.style.display = 'none';
+        userIcon.style.display = 'block';
+        userIcon.src = user.photoURL;
+
+        onSnapshot(doc(db, "users", user.uid), (docSnap) => {
+          if (docSnap.exists() && docSnap.data().isPremium) {
+            isUserPremium = true;
+          } else {
+            isUserPremium = false;
+          }
+          renderButtons();
+        });
+      } else {
+        currentUser = null;
+        isUserPremium = false;
+        loginBtn.style.display = 'flex';
+        userIcon.style.display = 'none';
+        renderButtons();
+      }
+    });
+
+    window.simulatePurchase = async () => {
+      if (!currentUser) { alert("Please login first."); closeModal(); return; }
+      try {
+        await setDoc(doc(db, "users", currentUser.uid), {
+          isPremium: true, email: currentUser.email, updatedAt: new Date()
+        }, { merge: true });
+        alert("Thank you! Pro features unlocked.");
+        closeModal();
+      } catch (e) { alert("Error: " + e.message); }
+    };
+
+    // === 比率データ（全て無料開放） ===
+    const RATIO_DATA = [
+      // Japan
+      { id: 'standard', label_key: 'SIZE_STANDARD', ratio: 297 / 210, isPremium: false, regions: ['ja'] },
+      { id: 'mokutan', label_key: 'SIZE_MOKUTAN', ratio: 650 / 500, isPremium: false, regions: ['ja'] }, // Free
+      { id: 'f-size', label_key: 'SIZE_F', ratio: 410 / 318, isPremium: false, regions: ['ja'] }, // Free
+
+      // US (Inches)
+      { id: 'us-16x20', label_key: 'SIZE_US_1620', ratio: 20 / 16, isPremium: false, regions: ['us'] }, // Free
+      { id: 'us-18x24', label_key: 'SIZE_US_1824', ratio: 24 / 18, isPremium: false, regions: ['us'] }, // Free
+
+      // EU / International
+      { id: 'eu-iso', label_key: 'SIZE_EU_ISO', ratio: 297 / 210, isPremium: false, regions: ['eu'] },
+      { id: 'eu-fig', label_key: 'SIZE_EU_FIG', ratio: 1.25, isPremium: false, regions: ['eu'] }, // Free
+
+      // Universal
+      { id: 'square', label_key: 'SIZE_SQUARE', ratio: 1.00, isPremium: false, regions: ['ja', 'us', 'eu'] }
+    ];
+
+    let currentRatio = 297 / 210;
+    let currentZoom = 1.0;
+    let isUsingCamera = true;
+
+    const video = document.getElementById('camera-video');
+    const importedImg = document.getElementById('imported-image');
+    const frame = document.getElementById('guide-frame');
+    const slider = document.getElementById('zoom-slider');
+    const btnContainer = document.getElementById('btn-container');
+    const saveModal = document.getElementById('save-modal');
+    const previewImg = document.getElementById('preview-img');
+    const btnSaveShare = document.getElementById('btn-save-share');
+    const canvas = document.getElementById('photo-canvas');
+    const shutterBtn = document.getElementById('shutter-btn');
+    const btnImport = document.getElementById('btn-import');
+    const fileInput = document.getElementById('file-input');
+
+    for (let i = 0; i < 16; i++) {
+      const cell = document.createElement('div');
+      cell.className = 'grid-cell';
+      frame.appendChild(cell);
+    }
+
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false
+        });
+        video.srcObject = stream;
+        video.style.display = 'block';
+        importedImg.style.display = 'none';
+        isUsingCamera = true;
+      } catch (e) { console.log("カメラなし"); }
+    }
+
+    function updateShape(ratio) {
+      currentRatio = ratio;
+      const sw = window.innerWidth;
+      const sh = window.innerHeight;
+      let w = sw * 0.85;
+      let h = w * ratio;
+      if (h > sh * 0.75) { h = sh * 0.75; w = h / ratio; }
+      frame.style.width = w + 'px';
+      frame.style.height = h + 'px';
+    }
+
+    slider.addEventListener('input', (e) => {
+      currentZoom = parseFloat(e.target.value);
+      const scale = `scale(${currentZoom})`;
+      if (isUsingCamera) { video.style.transform = scale; }
+      else { importedImg.style.transform = scale; }
+    });
+
+    btnImport.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        importedImg.src = evt.target.result;
+        importedImg.style.display = 'block';
+        video.style.display = 'none';
+        if (video.srcObject) { video.srcObject.getTracks().forEach(track => track.stop()); }
+        isUsingCamera = false;
+        currentZoom = 1.0;
+        slider.value = 1.0;
+        importedImg.style.transform = 'scale(1.0)';
+      };
+      reader.readAsDataURL(file);
+    };
+
+    window.toggleRegion = () => {
+      if (currentRegion === 'ja') currentRegion = 'us';
+      else if (currentRegion === 'us') currentRegion = 'eu';
+      else currentRegion = 'ja';
+      updateUITexts();
+      renderButtons();
+    };
+
+    function updateUITexts() {
+      const dict = LANGUAGE_STRINGS[currentRegion];
+      document.getElementById('btn-lang').innerText = dict['BTN_LABEL'];
+      document.getElementById('btn-login').innerText = dict['LOGIN'];
+      document.getElementById('btn-import').innerText = dict['IMPORT'];
+      document.getElementById('text-premium-title').innerText = dict['PREMIUM_TITLE'];
+      document.getElementById('text-premium-desc').innerHTML = dict['PREMIUM_DESC'];
+      document.getElementById('btn-purchase').innerText = dict['PURCHASE'];
+      document.getElementById('btn-close-modal').innerText = dict['CLOSE'];
+      document.getElementById('text-save-title').innerText = dict['SAVE_TITLE'];
+      document.getElementById('text-save-desc').innerText = dict['SAVE_DESC'];
+      document.getElementById('btn-save-share').innerText = dict['SAVE_BTN'];
+      document.getElementById('btn-close-save').innerText = dict['CLOSE'];
+    }
+
+    function renderButtons() {
+      btnContainer.innerHTML = '';
+      RATIO_DATA.forEach((item, i) => {
+        if (!item.regions.includes(currentRegion)) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'size-btn';
+
+        const labelText = LANGUAGE_STRINGS[currentRegion][item.label_key];
+        // 全開放中なので isLocked は常に false
+        const isLocked = false;
+
+        btn.innerHTML = labelText; // 鍵マークなし
+        if (Math.abs(item.ratio - currentRatio) < 0.01) {
+          btn.classList.add('active');
+        }
+
+        btn.onclick = () => {
+          // ロック処理なし（直接切り替え）
+          document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          updateShape(item.ratio);
+        };
+        btnContainer.appendChild(btn);
+      });
+    }
+
+    window.closeModal = () => { document.getElementById('modal').style.display = 'none'; };
+    window.closeSaveModal = () => { saveModal.style.display = 'none'; };
+
+    shutterBtn.onclick = () => {
+      let sourceW, sourceH, sourceElem;
+      if (isUsingCamera) {
+        sourceElem = video;
+        sourceW = video.videoWidth; sourceH = video.videoHeight;
+      } else {
+        sourceElem = importedImg;
+        sourceW = importedImg.naturalWidth; sourceH = importedImg.naturalHeight;
+      }
+      if (!sourceW || !sourceH) return;
+
+      const sourceRatio = sourceH / sourceW;
+      let renderW, renderH;
+      const containerW = window.innerWidth;
+      const containerH = window.innerHeight;
+      const containerRatio = containerH / containerW;
+
+      if (isUsingCamera) {
+        if (sourceRatio > containerRatio) { renderW = containerW; renderH = containerW * sourceRatio; }
+        else { renderH = containerH; renderW = containerH / sourceRatio; }
+      } else {
+        if (sourceRatio > containerRatio) { renderH = containerH; renderW = containerH / sourceRatio; }
+        else { renderW = containerW; renderH = containerW * sourceRatio; }
+      }
+
+      const zoomedW = renderW * currentZoom;
+      const zoomedH = renderH * currentZoom;
+
+      let frameW = containerW * 0.85;
+      let frameH = frameW * currentRatio;
+      if (frameH > containerH * 0.75) { frameH = containerH * 0.75; frameW = frameH / currentRatio; }
+
+      const cropRatioW = frameW / zoomedW;
+      const cropRatioH = frameH / zoomedH;
+      const cropSourceW = sourceW * cropRatioW;
+      const cropSourceH = sourceH * cropRatioH;
+      const startX = (sourceW - cropSourceW) / 2;
+      const startY = (sourceH - cropSourceH) / 2;
+
+      canvas.width = cropSourceW;
+      canvas.height = cropSourceH;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(sourceElem, startX, startY, cropSourceW, cropSourceH, 0, 0, cropSourceW, cropSourceH);
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+      ctx.lineWidth = cropSourceW * 0.005;
+
+      for (let i = 1; i <= 3; i++) {
+        const x = (cropSourceW / 4) * i;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, cropSourceH); ctx.stroke();
+      }
+      for (let i = 1; i <= 3; i++) {
+        const y = (cropSourceH / 4) * i;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cropSourceW, y); ctx.stroke();
+      }
+
+      const dataURL = canvas.toDataURL('image/png');
+      previewImg.src = dataURL;
+
+      btnSaveShare.onclick = async () => {
+        try {
+          const blob = await (await fetch(dataURL)).blob();
+          const file = new File([blob], "deskel_art.png", { type: "image/png" });
+          if (navigator.share && navigator.canShare({ files: [file] })) {
+            await navigator.share({ files: [file], title: 'デスケル画像', text: 'デスケルで作成した画像です' });
+          } else {
+            const a = document.createElement('a');
+            a.href = dataURL; a.download = 'deskel_art.png'; a.click();
+          }
+        } catch (err) { console.error("Share failed:", err); alert("保存に失敗しました: " + err.message); }
+      };
+      saveModal.style.display = 'flex';
+    };
+
+    startCamera();
+    updateUITexts();
+    updateShape(297 / 210);
+    renderButtons();
+    window.addEventListener('resize', () => updateShape(currentRatio));
+  </script>
+</body>
+
+</html>
