@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Deskel Pro (v18 Help)</title>
+  <title>Deskel Pro (v20 Warning)</title>
 
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon.png">
@@ -152,7 +152,6 @@
       background-color: #eee;
     }
 
-    /* サポートリンク */
     #btn-support {
       background: none;
       border: none;
@@ -196,7 +195,6 @@
       justify-content: center;
     }
 
-    /* ヘルプボタン（丸いデザイン） */
     #btn-help {
       width: 30px;
       height: 30px;
@@ -247,12 +245,9 @@
       border: 1px solid #444;
       max-width: 80%;
       max-height: 80vh;
-      /* 高さ制限 */
       overflow-y: auto;
-      /* スクロール可能に */
     }
 
-    /* ヘルプテキストのスタイル */
     .help-content {
       text-align: left;
       font-size: 13px;
@@ -272,6 +267,12 @@
     .help-content ul {
       padding-left: 20px;
       margin: 5px 0;
+    }
+
+    .help-warning {
+      color: #ff6b6b;
+      font-weight: bold;
+      margin-top: 5px;
     }
 
     #preview-img {
@@ -366,6 +367,8 @@
       <h3 id="text-premium-title">💎 有料機能</h3>
       <p id="text-premium-desc">Proプランへの登録が必要です。</p>
 
+      <p id="text-premium-warning" class="help-warning" style="font-size:11px; margin: 10px 0;"></p>
+
       <button id="btn-purchase" class="btn-purchase-demo" onclick="simulatePurchase()">
         ¥300で購入する
       </button>
@@ -397,8 +400,7 @@
   <div id="help-modal">
     <div class="modal-box">
       <h3 id="text-help-title">使い方</h3>
-      <div id="help-content-area" class="help-content">
-      </div>
+      <div id="help-content-area" class="help-content"></div>
       <button id="btn-close-help" class="btn-cancel" onclick="closeHelp()">閉じる</button>
     </div>
   </div>
@@ -412,7 +414,7 @@
 
     const SUPPORT_MAIL_ADDRESS = "your-email@example.com";
 
-    // === 言語・地域データ定義 (ヘルプテキスト追加) ===
+    // === 言語・地域データ定義 (★PREMIUM_WARNING 追加★) ===
     const LANGUAGE_STRINGS = {
       'ja': {
         'BTN_LABEL': '🇯🇵 Japan',
@@ -428,17 +430,17 @@
         'SIZE_EU_FIG': 'Europe Figure',
         'PREMIUM_TITLE': '💎 Proプラン',
         'PREMIUM_DESC': 'このサイズを使用するには<br>有料版への登録が必要です。',
+        'PREMIUM_WARNING': '※デジタル商品のため、購入後の返金はできません。<br>必ず無料サイズで動作確認をお願いします。',
         'PURCHASE': '【デモ】¥300で購入',
         'CLOSE': 'キャンセル',
         'SAVE_TITLE': '撮影しました',
         'SAVE_DESC': '保存方法を選んでください',
         'SAVE_BTN_ANDROID': '⬇️ 保存 (Android)',
         'SAVE_BTN_IOS': '📤 共有 (iOS)',
-        'SUPPORT_BTN': '✉️ お問い合わせ / 返金申請',
+        'SUPPORT_BTN': '✉️ お問い合わせ',
         'SUPPORT_SUB': 'デスケルPro お問い合わせ',
         'SUPPORT_BODY': '※以下のIDは消さずに送信してください。\n----------------\nユーザーID: ',
 
-        // ヘルプ用テキスト (HTML形式)
         'HELP_TITLE': '使い方ガイド',
         'HELP_CONTENT': `
           <h4>📱 アプリのインストール</h4>
@@ -455,6 +457,9 @@
           <h4>💾 保存について</h4>
           <p><strong>Android:</strong> 「⬇️ 保存」でダウンロードフォルダに入ります。<br>
           <strong>iPhone:</strong> 「📤 共有」から「画像を保存」を選んでください。</p>
+
+          <h4>⚠️ 注意事項</h4>
+          <p class="help-warning">有料プランの返金は原則として対応しておりません。<br>必ず無料サイズで動作を確認してからご購入ください。</p>
         `
       },
       'us': {
@@ -471,6 +476,7 @@
         'SIZE_EU_FIG': 'Europe Figure',
         'PREMIUM_TITLE': '💎 Pro Plan',
         'PREMIUM_DESC': 'Upgrade to Pro to use<br>this canvas size.',
+        'PREMIUM_WARNING': 'Note: All sales are final.<br>Refunds are not available for digital products.',
         'PURCHASE': '[Demo] Buy for $3.00',
         'CLOSE': 'Cancel',
         'SAVE_TITLE': 'Captured',
@@ -481,7 +487,6 @@
         'SUPPORT_SUB': 'Deskel Pro Support Request',
         'SUPPORT_BODY': 'Please do not delete the User ID below.\n----------------\nUser ID: ',
 
-        // Help Text (English)
         'HELP_TITLE': 'User Guide',
         'HELP_CONTENT': `
           <h4>📱 How to Install</h4>
@@ -495,9 +500,8 @@
             <li><strong>Import:</strong> Load photo from library</li>
           </ul>
           
-          <h4>💾 Saving Images</h4>
-          <p><strong>Android:</strong> Tap "⬇️ Download" (Saved to Downloads).<br>
-          <strong>iOS:</strong> Tap "📤 Share" then "Save Image".</p>
+          <h4>⚠️ Important</h4>
+          <p class="help-warning">All sales are final for the Pro Plan.<br>Please ensure the app works on your device before purchasing.</p>
         `
       },
       'eu': {
@@ -514,6 +518,7 @@
         'SIZE_EU_FIG': 'Europe Figure',
         'PREMIUM_TITLE': '💎 Pro Plan',
         'PREMIUM_DESC': 'Upgrade to Pro to use<br>this canvas size.',
+        'PREMIUM_WARNING': 'Note: All sales are final.<br>Refunds are not available for digital products.',
         'PURCHASE': '[Demo] Buy for $3.00',
         'CLOSE': 'Cancel',
         'SAVE_TITLE': 'Captured',
@@ -650,9 +655,7 @@
     const helpModal = document.getElementById('help-modal');
     const helpContent = document.getElementById('help-content-area');
 
-    // ヘルプ開閉関数
     window.openHelp = () => {
-      // 現在の言語のヘルプテキストを注入
       const dict = LANGUAGE_STRINGS[currentRegion];
       document.getElementById('text-help-title').innerText = dict['HELP_TITLE'];
       helpContent.innerHTML = dict['HELP_CONTENT'];
@@ -731,6 +734,10 @@
       document.getElementById('btn-import').innerText = dict['IMPORT'];
       document.getElementById('text-premium-title').innerText = dict['PREMIUM_TITLE'];
       document.getElementById('text-premium-desc').innerHTML = dict['PREMIUM_DESC'];
+
+      // ★注意書きの更新★
+      document.getElementById('text-premium-warning').innerHTML = dict['PREMIUM_WARNING'];
+
       document.getElementById('btn-purchase').innerText = dict['PURCHASE'];
       document.getElementById('btn-close-modal').innerText = dict['CLOSE'];
 
